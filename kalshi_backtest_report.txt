@@ -1,0 +1,37 @@
+processing 2838 Kalshi markets ...
+markets used 2805   skipped {'no binance': 33}
+
+[A] settlement
+  exchange: expiration_value >= floor_strike <-> result   2804/2804
+  Binance proxy, 60s avg vs 60s avg                         2726/2775 (98.2%);  |margin| > $15: 2339/2339
+  proxy strike - Kalshi strike ($): p10 -42.45  median -13.04  p90 +35.11
+
+[A2] calibration: model P(yes) buckets vs outcome, and Brier vs Kalshi's last trade
+  model P(yes)  samples  yes won  +/- 2SE
+    0.0-0.1     4225    0.027    0.005
+    0.1-0.2      725    0.172    0.028
+    0.2-0.3      798    0.262    0.031
+    0.3-0.4     1155    0.341    0.028
+    0.4-0.5     1631    0.462    0.025
+    0.5-0.6     1484    0.571    0.026
+    0.6-0.7     1054    0.609    0.030
+    0.7-0.8      769    0.761    0.031
+    0.8-0.9      703    0.852    0.027
+    0.9-1.0     4286    0.980    0.004
+  Brier on 16830 samples: model 0.1157   Kalshi last trade 0.1102   (lower wins)
+
+[B] copy every taker fill with model edge >= theta: realised P&L per contract, clustered by market
+                                D=-3s LEAK                        D=0s                        D=1s                        D=2s                        D=5s                       D=10s
+    all takers     -1.20c +/-0.04 n=74.63M     -1.20c +/-0.04 n=74.67M     -1.20c +/-0.04 n=74.65M     -1.20c +/-0.04 n=74.63M     -1.19c +/-0.04 n=74.44M     -1.19c +/-0.04 n=73.95M
+         >= 0c     +0.38c +/-0.37 n=28.87M     -0.74c +/-0.39 n=27.41M     -0.85c +/-0.37 n=28.35M     -0.91c +/-0.35 n=29.15M     -0.98c +/-0.31 n=30.81M     -1.07c +/-0.27 n=32.24M
+         >= 2c     +0.87c +/-0.55 n=18.22M     -1.04c +/-0.59 n=16.96M     -1.16c +/-0.54 n=17.96M     -1.23c +/-0.51 n=18.90M     -1.33c +/-0.44 n=21.09M     -1.37c +/-0.37 n=23.40M
+         >= 5c     +1.43c +/-0.74 n= 9.74M     -1.40c +/-0.79 n= 8.95M     -1.55c +/-0.72 n= 9.73M     -1.65c +/-0.67 n=10.50M     -1.74c +/-0.55 n=12.52M     -1.78c +/-0.45 n=15.04M
+        >= 10c     +3.42c +/-1.13 n= 3.62M     -1.96c +/-1.21 n= 3.27M     -2.14c +/-1.06 n= 3.71M     -2.22c +/-0.95 n= 4.16M     -2.23c +/-0.74 n= 5.43M     -2.19c +/-0.56 n= 7.24M
+  cents per contract after fees; +/- one market-clustered SE; n = fills.
+
+[C] D=0, edge >= 2c, by seconds into the 15-minute window
+     1-120 s   -2.77c +/- 1.45   contracts     65,061,368   markets 2702
+   120-600 s   -0.48c +/- 0.75   contracts    503,705,281   markets 2805
+   600-840 s   -1.46c +/- 0.72   contracts    425,922,806   markets 2590
+   840-885 s   -1.10c +/- 1.13   contracts     68,318,363   markets 980
+   885-900 s   +0.23c +/- 1.83   contracts      9,291,169   markets 178

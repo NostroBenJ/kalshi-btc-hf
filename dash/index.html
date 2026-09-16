@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kalshi BTC bot · KXBTC15M</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+/* Tokens: trading-ui skill (tokens.css). Six hues, no additions. */
+:root {
+  --bg:#0a0e14; --panel:#0f141c; --panel-2:#131a24; --line:#1e2733;
+  --text:#cdd6e4; --muted:#6b7888; --dim:#3b4554;
+  --up:#26a69a; --up-soft:rgba(38,166,154,.16); --down:#ef5350; --down-soft:rgba(239,83,80,.16);
+  --accent:#e6b450; --accent-soft:rgba(230,180,80,.16); --neutral:#5a8dee;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace; --sans:"IBM Plex Sans",system-ui,sans-serif;
+  --row-h:26px; --pad:14px; --radius:4px;
+}
+* { box-sizing:border-box; }
+html,body { margin:0; background:var(--bg); color:var(--text); font:13px/1.4 var(--sans); }
+.num { font-family:var(--mono); font-variant-numeric:tabular-nums; text-align:right; }
+.mono { font-family:var(--mono); font-variant-numeric:tabular-nums; }
+.muted { color:var(--muted); } .dim { color:var(--dim); }
+.up { color:var(--up); } .down { color:var(--down); } .accent { color:var(--accent); }
+.modeled { border-bottom:1px dashed var(--muted); }
+
+header { height:44px; display:flex; align-items:center; gap:18px; padding:0 16px; border-bottom:1px solid var(--line); background:var(--bg); position:sticky; top:0; z-index:5; }
+.brand { font:600 13px var(--sans); letter-spacing:.06em; }
+.pill { font:500 10px/1 var(--mono); letter-spacing:.06em; padding:4px 6px; border:1px solid var(--accent); color:var(--accent); border-radius:var(--radius); }
+.status { display:flex; gap:16px; margin-left:auto; align-items:center; }
+.st { display:flex; gap:6px; align-items:center; font:500 11px var(--mono); color:var(--muted); white-space:nowrap; }
+.dot { width:6px; height:6px; border-radius:50%; background:var(--dim); }
+.dot.live { background:var(--up); } .dot.delayed { background:var(--accent); } .dot.stale { background:var(--down); }
+.pill.real { border-color:var(--down); color:#fff; background:var(--down); }
+#live { display:none; align-items:center; gap:22px; padding:8px 16px; border-bottom:1px solid var(--down); background:var(--down-soft); font:500 12px var(--mono); }
+#live .k { color:var(--muted); margin-right:6px; font-family:var(--sans); }
+#live .stopped { color:var(--down); font-weight:600; }
+#live button { margin-left:auto; background:var(--down); color:#fff; border:0; border-radius:var(--radius); font:600 12px var(--sans); padding:7px 14px; cursor:pointer; }
+#live button:disabled { background:var(--dim); cursor:default; }
+#live button:focus-visible { outline:2px solid var(--text); outline-offset:2px; }
+#banner { display:none; padding:6px 16px; font:500 12px var(--mono); color:var(--down); background:var(--down-soft); border-bottom:1px solid var(--line); }
+
+.kpis { display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); border-bottom:1px solid var(--line); }
+.kpi { padding:10px var(--pad); border-right:1px solid var(--line); min-width:0; }
+.kpi:last-child { border-right:0; }
+.kpi .l { font:500 10px var(--sans); letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+.kpi .v { font:500 20px/1.3 var(--mono); font-variant-numeric:tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.kpi .s { font:400 11px var(--mono); color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+main { display:grid; grid-template-columns:minmax(0,1fr) 420px; }
+.left { border-right:1px solid var(--line); min-width:0; }
+section { padding:var(--pad); border-bottom:1px solid var(--line); min-width:0; }
+.title { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; gap:8px; }
+.title h2 { margin:0; font:500 11px var(--sans); letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+.title .sub { font:400 11px var(--mono); color:var(--dim); }
+.chart { height:220px; }
+.legend { display:flex; gap:14px; font-size:11px; color:var(--muted); }
+.sw { display:inline-block; width:12px; border-top:2px solid; vertical-align:middle; margin-right:5px; }
+.sw.dash { border-top-style:dashed; }
+
+table { width:100%; border-collapse:collapse; }
+th { font:500 10px var(--sans); letter-spacing:.06em; text-transform:uppercase; color:var(--muted); text-align:right; padding:0 6px 6px; border-bottom:1px solid var(--line); white-space:nowrap; }
+td { height:var(--row-h); padding:0 6px; text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; white-space:nowrap; border-bottom:1px solid rgba(30,39,51,.5); }
+th.l, td.l { text-align:left; }
+tr.hot td { background:var(--up-soft); }
+tr.new td { animation:flash 1.5s ease-out; }
+@keyframes flash { from { background:var(--accent-soft); } to { background:transparent; } }
+.scroll { max-height:340px; overflow:auto; }
+.tag { font:500 10px var(--mono); padding:2px 5px; border-radius:3px; background:var(--panel-2); color:var(--muted); }
+.tag.filled { color:var(--accent); } .tag.settled { color:var(--text); }
+
+.kv { display:grid; grid-template-columns:1fr auto; gap:5px 12px; }
+.kv .k { color:var(--muted); } .kv .v { font-family:var(--mono); font-variant-numeric:tabular-nums; text-align:right; }
+.bar { position:relative; height:22px; background:var(--panel-2); border-radius:var(--radius); margin:10px 0 4px; }
+.bar .band { position:absolute; top:3px; bottom:3px; background:rgba(90,141,238,.28); border-left:1px solid var(--neutral); border-right:1px solid var(--neutral); }
+.bar .fair { position:absolute; top:-3px; bottom:-3px; border-left:2px dashed var(--accent); }
+.scale { display:flex; justify-content:space-between; font:400 10px var(--mono); color:var(--dim); }
+
+.tabs { display:flex; gap:0; border-bottom:1px solid var(--line); margin:calc(-1 * var(--pad)) calc(-1 * var(--pad)) 12px; }
+.tabs button { background:none; border:0; border-bottom:2px solid transparent; color:var(--muted); font:500 11px var(--sans); letter-spacing:.06em; text-transform:uppercase; padding:10px 12px; cursor:pointer; }
+.tabs button.on { color:var(--text); border-bottom-color:var(--accent); }
+.pane { display:none; } .pane.on { display:block; }
+.meter { height:4px; background:var(--panel-2); border-radius:2px; margin-top:4px; }
+.meter div { height:100%; background:var(--down); border-radius:2px; }
+.log { height:300px; overflow:auto; font:11.5px/1.6 var(--mono); }
+.log div { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.log .t { color:var(--dim); margin-right:8px; }
+.log .warn { color:var(--down); } .log .trade { color:var(--accent); } .log .fill { color:var(--text); }
+.log .miss, .log .info { color:var(--muted); } .log .settle { color:var(--neutral); }
+.empty { color:var(--muted); font-family:var(--sans); text-align:center !important; padding:16px !important; }
+.note { font-size:11px; color:var(--dim); margin-top:8px; }
+@media (max-width:1100px) { main { grid-template-columns:1fr; } .left { border-right:0; } .kpis { grid-template-columns:repeat(3,1fr); } }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">KXBTC15M BOT</span>
+  <span class="pill" id="mode">PAPER</span>
+  <span class="st" id="host">—</span>
+  <div class="status">
+    <span class="st"><span class="dot" id="d-btc"></span>BTC <span id="a-btc">—</span></span>
+    <span class="st"><span class="dot" id="d-book"></span><span id="src">Kalshi</span> <span id="a-book">—</span></span>
+    <span class="st" title="Event-loop lag p90 and hypervisor steal. Above 50 ms lag the bot stops entering."><span class="dot" id="d-load"></span>Load <span id="load">—</span></span>
+    <span class="st" id="clock">—</span>
+  </div>
+</header>
+<div id="live">
+  <span><span class="k">Kalshi balance</span><span id="lv-bal">—</span></span>
+  <span><span class="k">Live P&amp;L incl. open</span><span id="lv-pnl">—</span></span>
+  <span><span class="k">Caps</span><span id="lv-caps">—</span></span>
+  <span id="lv-state">—</span>
+  <span class="dim" id="lv-rec">—</span>
+  <button id="lv-stop" type="button">Stop live trading</button>
+</div>
+<div id="banner"></div>
+
+<div class="kpis">
+  <div class="kpi"><div class="l">Paper P&amp;L</div><div class="v" id="k-pnl">—</div><div class="s" id="k-pnl-s">settled trades</div></div>
+  <div class="kpi"><div class="l">Win rate</div><div class="v" id="k-win">—</div><div class="s" id="k-win-s">—</div></div>
+  <div class="kpi"><div class="l">Fills / misses</div><div class="v" id="k-fm">—</div><div class="s" id="k-fm-s">—</div></div>
+  <div class="kpi"><div class="l">Market</div><div class="v" id="k-mkt">—</div><div class="s" id="k-mkt-s">—</div></div>
+  <div class="kpi"><div class="l">BTC − strike</div><div class="v" id="k-dist">—</div><div class="s" id="k-dist-s">—</div></div>
+  <div class="kpi"><div class="l">Model vs Kalshi</div><div class="v" id="k-fair">—</div><div class="s" id="k-fair-s">model P(YES) · Kalshi mid</div></div>
+</div>
+
+<main>
+  <div class="left">
+    <section>
+      <div class="title"><h2>BTC vs strike</h2><div class="legend"><span><span class="sw" style="border-color:var(--neutral)"></span>BTC (4-venue median, observed)</span><span><span class="sw" style="border-color:var(--accent)"></span>strike</span></div></div>
+      <div class="chart" id="c-btc"></div>
+    </section>
+    <section>
+      <div class="title"><h2>Probability</h2><div class="legend"><span><span class="sw dash" style="border-color:var(--accent)"></span>model (modeled)</span><span><span class="sw" style="border-color:var(--neutral)"></span>Kalshi mid (observed)</span></div></div>
+      <div class="chart" id="c-prob" style="height:180px"></div>
+    </section>
+    <section style="border-bottom:0">
+      <div class="title"><h2>Orders</h2><span class="sub" id="ord-sub">—</span></div>
+      <div class="scroll">
+        <table>
+          <thead><tr><th class="l">Time</th><th class="l">Market</th><th class="l">Side</th><th>Limit</th><th>Fill</th><th>Qty</th><th>Fair</th><th>Edge</th><th>Latency</th><th class="l">Status</th><th>P&amp;L</th></tr></thead>
+          <tbody id="orders"><tr><td colspan="11" class="empty">No orders yet.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div class="right">
+    <section>
+      <div class="title"><h2>Book &amp; edge</h2><span class="sub" id="ticker">—</span></div>
+      <div class="bar"><div class="band" id="band"></div><div class="fair" id="fairline"></div></div>
+      <div class="scale"><span>0</span><span>.25</span><span>.50</span><span>.75</span><span>1</span></div>
+      <table style="margin-top:10px">
+        <thead><tr><th class="l">Side</th><th>Bid</th><th>Ask</th><th>Size</th><th>Edge after fee</th></tr></thead>
+        <tbody>
+          <tr id="r-yes"><td class="l">▲ YES</td><td id="yb">—</td><td id="ya">—</td><td id="ys">—</td><td id="ey">—</td></tr>
+          <tr id="r-no"><td class="l">▼ NO</td><td id="nb">—</td><td id="na">—</td><td id="ns">—</td><td id="en">—</td></tr>
+        </tbody>
+      </table>
+      <div class="kv" style="margin-top:12px">
+        <span class="k">Strike (Kalshi)</span><span class="v" id="strike">—</span>
+        <span class="k">BTC, basis-adjusted</span><span class="v" id="btc">—</span>
+        <span class="k">Basis / volatility</span><span class="v" id="basis">—</span>
+      </div>
+    </section>
+
+    <section>
+      <div class="title"><h2>News trigger</h2><span class="sub" id="trig-rule">—</span></div>
+      <div class="kv">
+        <span class="k">Model move, last 1 s</span><span class="v" id="t-dfair">—</span>
+        <span class="k">Kalshi move, last 1 s</span><span class="v" id="t-dmid">—</span>
+        <span class="k">Lag (model − Kalshi)</span><span class="v" id="t-lag">—</span>
+        <span class="k">State</span><span class="v" id="t-state">—</span>
+      </div>
+    </section>
+
+    <section style="border-bottom:0">
+      <div class="tabs" id="tabs">
+        <button data-p="risk" class="on">Risk</button><button data-p="exits">Exits</button><button data-p="autopsy">Autopsy</button><button data-p="system">System</button><button data-p="log">Log</button>
+      </div>
+
+      <div class="pane on" id="p-risk">
+        <div class="kv">
+          <span class="k">Status</span><span class="v" id="r-state">—</span>
+          <span class="k">Today vs daily limit</span><span class="v" id="r-day">—</span>
+        </div>
+        <div class="meter"><div id="r-daybar" style="width:0"></div></div>
+        <div class="kv" style="margin-top:10px">
+          <span class="k">Losing markets in a row</span><span class="v" id="r-streak">—</span>
+          <span class="k">Recent miss rate</span><span class="v" id="r-miss">—</span>
+          <span class="k">At risk, this market</span><span class="v" id="r-exp">—</span>
+          <span class="k">Limits</span><span class="v dim" id="r-rules">—</span>
+        </div>
+        <table style="margin-top:12px"><thead><tr><th class="l">Blocked by</th><th>Signals</th><th>Markets</th><th>Would have made</th></tr></thead><tbody id="r-blocks"><tr><td colspan="4" class="empty">None</td></tr></tbody></table>
+        <div class="note" id="r-blocks-note">Each blocked signal is settled as a hypothetical trade at the price it saw. Positive means the rule is costing money; negative means it's saving money.</div>
+      </div>
+
+      <div class="pane" id="p-exits">
+        <table><thead><tr><th class="l">Exit rule</th><th>P&amp;L / contract</th></tr></thead><tbody id="x-rows"><tr><td colspan="2" class="empty">Needs settled trades with 30 s of book data.</td></tr></tbody></table>
+        <div class="note" id="x-note">Same trades, sold at the real Kalshi bid N seconds after entry, versus held to settlement.</div>
+      </div>
+
+      <div class="pane" id="p-autopsy"><div id="autopsy" class="empty">Needs settled news-trigger trades.</div></div>
+
+      <div class="pane" id="p-system">
+        <table>
+          <thead><tr><th class="l">Stage</th><th>Rate</th><th>Latency</th><th>CPU</th></tr></thead>
+          <tbody id="sys-rows"></tbody>
+        </table>
+        <div class="kv" style="margin-top:12px">
+          <span class="k">Host</span><span class="v" id="sys-host">—</span>
+          <span class="k">Steal / loop lag p90</span><span class="v" id="sys-load">—</span>
+          <span class="k">Order round trip</span><span class="v" id="sys-rtt">—</span>
+          <span class="k">BTC venues</span><span class="v" id="sys-venues">—</span>
+          <span class="k">Recorder</span><span class="v" id="sys-rec">—</span>
+        </div>
+      </div>
+
+      <div class="pane" id="p-log"><div class="log" id="log"></div></div>
+    </section>
+  </div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const f = (v, d = 2) => v == null || !isFinite(v) ? "—" : Number(v).toFixed(d);
+const cents = v => v == null || !isFinite(v) ? "—" : (v >= 0 ? "+" : "−") + Math.abs(100 * v).toFixed(1) + "¢";
+const money = v => v == null ? "—" : (v >= 0 ? "+$" : "−$") + Math.abs(v).toFixed(2);
+const hms = t => new Date(t * 1000).toLocaleTimeString("en-US", { hour12: false });
+const big = n => n == null ? "—" : n >= 1e6 ? (n / 1e6).toFixed(1) + "M" : n >= 1e3 ? (n / 1e3).toFixed(1) + "k" : String(Math.round(n));
+const sign = (v, txt) => `<span class="${v >= 0 ? "up" : "down"}">${txt}</span>`;
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
+  document.querySelectorAll(".pane").forEach(p => p.classList.toggle("on", p.id === "p-" + b.dataset.p));
+  try { localStorage.setItem("kbot-tab", b.dataset.p); } catch (e) {}
+});
+try { const t = localStorage.getItem("kbot-tab"); if (t) document.querySelector(`#tabs button[data-p="${t}"]`)?.click(); } catch (e) {}
+
+function age(dotId, textId, seconds, liveUnder, staleOver) {
+  const d = $(dotId), a = $(textId);
+  if (seconds == null || !isFinite(seconds)) { d.className = "dot stale"; a.textContent = "no data"; return; }
+  d.className = "dot " + (seconds < liveUnder ? "live" : seconds < staleOver ? "delayed" : "stale");
+  a.textContent = seconds < 1 ? "live" : seconds.toFixed(1) + "s";
+}
+
+const chartBase = { layout: { background: { color: "#0a0e14" }, textColor: "#6b7888", fontFamily: "JetBrains Mono", fontSize: 11 },
+  grid: { vertLines: { color: "#1e2733" }, horzLines: { color: "#1e2733" } }, rightPriceScale: { borderColor: "#1e2733" },
+  timeScale: { borderColor: "#1e2733", timeVisible: true, secondsVisible: false }, crosshair: { mode: 0 }, handleScroll: false, handleScale: false };
+const cBtc = LightweightCharts.createChart($("c-btc"), { ...chartBase, autoSize: true });
+const cProb = LightweightCharts.createChart($("c-prob"), { ...chartBase, autoSize: true });
+// Smoothness: BTC and the model are continuous, so they draw curved (lineType 2). Kalshi's mid
+// really moves in 1c jumps, so it draws as steps (lineType 1) — a curve would invent prices.
+const sBtc = cBtc.addLineSeries({ color: "#5a8dee", lineWidth: 2, lineType: 2, priceLineVisible: false, lastValueVisible: true });
+const sFair = cProb.addLineSeries({ color: "#e6b450", lineWidth: 2, lineStyle: 2, lineType: 2, priceLineVisible: false });
+const sMid = cProb.addLineSeries({ color: "#5a8dee", lineWidth: 2, lineType: 1, priceLineVisible: false });
+// Charts get one point per second (the library's time resolution): the last value seen in that
+// second. After the first load, only new seconds are appended with update() — no full redraws.
+const chartState = { btc: { last: 0, series: sBtc, k: 1 }, fair: { last: 0, series: sFair, k: 2 }, mid: { last: 0, series: sMid, k: 3 } };
+let chartTicker = null;
+function feedCharts(series, ticker) {
+  const tz = new Date().getTimezoneOffset() * 60;
+  const reset = ticker !== chartTicker;  // new 15-minute market: start the lines fresh
+  chartTicker = ticker;
+  for (const st of Object.values(chartState)) {
+    const perSec = new Map();
+    for (const x of series) if (x[st.k] != null) perSec.set(Math.floor(x[0] - tz), x[st.k]);
+    const pts = [...perSec].map(([time, value]) => ({ time, value })).sort((a, b) => a.time - b.time);
+    if (reset || st.last === 0) {
+      st.series.setData(pts);
+    } else {
+      // re-send the current second (its last value may have changed) and any newer ones
+      for (const pt of pts) if (pt.time >= st.last) st.series.update(pt);
+    }
+    if (pts.length) st.last = pts[pts.length - 1].time;
+  }
+}
+let strikeLine = null, lastStrike = null, seen = new Set(), first = true;
+
+function render(s) {
+  const now = s.now, m = s.market, md = s.model, b = s.book, cfg = s.config, st = s.stats, c = st.counts || {}, h = s.host || {}, p = s.pipeline || {};
+
+  // header
+  $("mode").textContent = s.broker === "LIVE" ? "LIVE · REAL MONEY" : s.broker === "DEMO" ? "DEMO · FAKE MONEY" : "PAPER · NO REAL ORDERS";
+  $("mode").className = "pill" + (s.broker === "LIVE" ? " real" : "");
+  const lv = s.live;
+  $("live").style.display = lv ? "flex" : "none";
+  if (lv) {
+    $("lv-bal").textContent = lv.balance == null ? "checking…" : `$${lv.balance.toFixed(2)}`;
+    $("lv-pnl").innerHTML = `${sign(lv.lifetime_pnl, money(lv.lifetime_pnl))} <span class="dim">of −$${lv.caps.lifetime.toFixed(0)} stop</span>`;
+    $("lv-caps").textContent = `$${lv.caps.order}/order · $${lv.caps.market}/market · $${lv.caps.day}/day · ${lv.caps.orders_per_day} orders/day`;
+    $("lv-state").innerHTML = lv.stopped ? `<span class="stopped">STOPPED: ${lv.stopped.replace(/</g, "&lt;")}</span>` : `<span class="up">trading</span>`;
+    $("lv-rec").textContent = lv.reconcile || "positions not checked yet";
+    $("lv-stop").disabled = !!lv.stopped;
+    $("lv-stop").textContent = lv.stopped ? "Live trading stopped" : "Stop live trading";
+  }
+  document.querySelector(".kpi .l").innerHTML = s.broker === "LIVE" ? "Live P&amp;L" : "Paper P&amp;L";
+  const up = h.uptime_s || 0;
+  $("host").textContent = h.name ? `${h.name} · up ${Math.floor(up / 3600)}h ${Math.floor(up % 3600 / 60)}m` : "—";
+  age("d-btc", "a-btc", s.coin.ts ? now - s.coin.ts : null, 2, 5);
+  age("d-book", "a-book", b.ts ? now - b.ts : null, 1.5, 4);
+  $("src").textContent = s.book_source === "Kalshi websocket" ? "Kalshi WS" : "Kalshi REST";
+  const procs = h.procs || {}, lag = h.loop_lag_p90;
+  $("load").textContent = lag == null ? "—" : `${lag.toFixed(0)} ms` + (procs.steal_pct == null ? "" : ` · steal ${procs.steal_pct.toFixed(0)}%`);
+  $("d-load").className = "dot " + (h.overloaded ? "stale" : lag > 20 || procs.steal_pct > 5 ? "delayed" : "live");
+  $("clock").textContent = new Date().toLocaleTimeString("en-US", { timeZone: "America/New_York", hour12: false }) + " ET";
+  const warn = [];
+  if (s.rate_limited) warn.push("Kalshi rate limit — book stale, no trading");
+  if (s.book_source && s.book_source !== "Kalshi websocket") warn.push("Kalshi websocket down — polling REST, reconnecting");
+  if (h.overloaded) warn.push(`Bot overloaded (lag ${lag.toFixed(0)} ms) — new entries paused`);
+  $("banner").style.display = warn.length ? "block" : "none";
+  $("banner").textContent = warn.join("   ·   ");
+
+  // KPIs
+  $("k-pnl").innerHTML = st.settled ? sign(st.pnl, money(st.pnl)) : "—";
+  $("k-pnl-s").textContent = st.settled ? `${st.settled} settled · $${big(st.notional)} deployed` : "no settled trades";
+  $("k-win").textContent = st.settled ? Math.round(100 * st.wins / st.settled) + "%" : "—";
+  $("k-win-s").textContent = st.settled ? `${st.wins} of ${st.settled}` : "—";
+  const fills = (c.filled || 0) + (c.settled || 0), misses = c.missed || 0;
+  $("k-fm").textContent = `${fills} / ${misses}`;
+  $("k-fm-s").textContent = fills + misses ? `${Math.round(100 * fills / (fills + misses))}% filled` : "—";
+  if (m) {
+    const left = Math.max(0, m.close - now);
+    $("k-mkt").textContent = `${String(Math.floor(left / 60)).padStart(2, "0")}:${String(Math.floor(left % 60)).padStart(2, "0")}`;
+    $("k-mkt-s").textContent = m.ticker.replace("KXBTC15M-", "") + " · left";
+    $("ticker").textContent = m.ticker;
+  }
+  const dist = md.S != null && m && m.strike != null ? md.S - m.strike : null;
+  $("k-dist").innerHTML = dist == null ? "—" : sign(dist, `${dist >= 0 ? "▲ +" : "▼ −"}$${Math.abs(dist).toFixed(2)}`);
+  $("k-dist-s").textContent = m && m.strike != null ? `strike $${f(m.strike)}` : "—";
+  const mid = b.yes_bid != null && b.yes_ask != null ? (b.yes_bid + b.yes_ask) / 2 : null;
+  $("k-fair").innerHTML = md.fair == null ? `<span class="muted">— · ${f(mid, 3)}</span>` : `<span class="modeled">${f(md.fair, 3)}</span> · ${f(mid, 3)}`;
+  $("k-fair-s").textContent = md.fair == null ? (md.basis == null ? "model waits for next open" : "model P(YES) · Kalshi mid") : "model P(YES) · Kalshi mid";
+
+  // book
+  if (b.yes_bid != null && b.yes_ask != null) { $("band").style.left = (100 * b.yes_bid) + "%"; $("band").style.width = Math.max(0.5, 100 * (b.yes_ask - b.yes_bid)) + "%"; }
+  $("fairline").style.display = md.fair == null ? "none" : "block";
+  if (md.fair != null) $("fairline").style.left = (100 * md.fair) + "%";
+  $("yb").textContent = f(b.yes_bid, 3); $("ya").textContent = f(b.yes_ask, 3); $("ys").textContent = b.yes_ask_sz ? big(b.yes_ask_sz) : "—";
+  $("nb").textContent = f(b.no_bid, 3); $("na").textContent = f(b.no_ask, 3); $("ns").textContent = b.no_ask_sz ? big(b.no_ask_sz) : "—";
+  for (const [id, row, e] of [["ey", "r-yes", md.edge_yes], ["en", "r-no", md.edge_no]]) {
+    $(id).innerHTML = e == null ? "—" : sign(e, cents(e));
+    $(row).className = e != null && e >= 0 ? "hot" : "";
+  }
+  $("strike").textContent = m && m.strike != null ? "$" + f(m.strike) : "—";
+  $("btc").textContent = md.S == null ? "—" : "$" + f(md.S);
+  $("basis").textContent = `${md.basis == null ? "—" : (md.basis >= 0 ? "+" : "−") + Math.abs(md.basis).toFixed(2)} · ${md.sigma == null ? "—" : (100 * md.sigma).toFixed(1) + "%"}`;
+
+  // trigger
+  const t = p.trigger || {}, need = cfg.trigger_delta;
+  $("trig-rule").textContent = cfg.strategy === "news" ? `fires at ≥ ${(100 * need).toFixed(0)}¢ in 1 s` : "level strategy";
+  $("t-dfair").textContent = cents(t.d_fair_1s); $("t-dmid").textContent = cents(t.d_mid_1s); $("t-lag").textContent = cents(t.lag);
+  const firing = t.d_fair_1s != null && t.lag != null && Math.abs(t.d_fair_1s) >= need && Math.sign(t.lag) === Math.sign(t.d_fair_1s) && Math.abs(t.lag) >= need / 2;
+  $("t-state").innerHTML = t.d_fair_1s == null ? "—" : firing ? '<span class="accent">firing</span>'
+    : `${Math.round(100 * Math.min(1, Math.abs(t.d_fair_1s) / need))}% of threshold`;
+
+  // charts
+  feedCharts(s.series, m ? m.ticker : null);
+  if (m && m.strike != null && m.strike !== lastStrike) {
+    if (strikeLine) sBtc.removePriceLine(strikeLine);
+    strikeLine = sBtc.createPriceLine({ price: m.strike, color: "#e6b450", lineWidth: 1, lineStyle: 0, axisLabelVisible: true, title: "strike" });
+    lastStrike = m.strike;
+  }
+
+  // orders
+  $("ord-sub").textContent = `${c.filled || 0} open · ${c.settled || 0} settled · ${c.missed || 0} missed`;
+  if (s.orders.length) {
+    $("orders").innerHTML = s.orders.map(o => {
+      const isNew = !first && !seen.has(o.id); seen.add(o.id);
+      return `<tr class="${isNew ? "new" : ""}"><td class="l">${hms(o.signal_ts)}</td><td class="l muted">${o.ticker.replace("KXBTC15M-", "")}</td>
+        <td class="l ${o.side === "yes" ? "up" : "down"}">${o.side === "yes" ? "▲ YES" : "▼ NO"}</td><td>${f(o.limit)}</td><td>${f(o.fill_px)}</td>
+        <td>${o.contracts ? Math.round(o.contracts) : "—"}</td><td><span class="modeled">${f(o.fair, 3)}</span></td><td>${cents(o.edge)}</td>
+        <td class="muted">${o.ack_ms == null ? "—" : Math.round(o.ack_ms) + " ms"}</td>
+        <td class="l"><span class="tag ${o.status}" title="${esc(o.note || "")}">${o.status}</span></td><td>${o.pnl == null ? "—" : sign(o.pnl, money(o.pnl))}</td></tr>`;
+    }).join("");
+  }
+  first = false;
+
+  // risk
+  const rk = s.risk || {};
+  if (rk.rules) {
+    $("r-state").innerHTML = rk.paused ? `<span class="down">Paused ${Math.ceil(rk.paused_for_s / 60)} min — ${esc(rk.pause_reason)}</span>`
+      : rk.would_pause ? `<span class="accent">Would pause — ${esc(rk.pause_reason)}</span> <span class="dim">(paper: not enforced)</span>`
+      : `<span class="up">Active</span>${rk.enforce_breakers === false ? ' <span class="dim">· breakers report only (paper)</span>' : ""}`;
+    $("r-day").innerHTML = `${sign(rk.day_pnl, money(rk.day_pnl))} <span class="dim">/ −$${rk.daily_limit}</span>`;
+    $("r-daybar").style.width = Math.min(100, Math.max(0, -100 * rk.day_pnl / rk.daily_limit)) + "%";
+    $("r-streak").textContent = `${rk.streak} of ${rk.rules.streak_markets}`;
+    $("r-miss").innerHTML = `<span class="${rk.miss_rate > rk.rules.miss_rate ? "down" : ""}">${Math.round(100 * rk.miss_rate)}%</span> <span class="dim">of ${rk.miss_window} · pause above ${Math.round(100 * rk.rules.miss_rate)}%</span>`;
+    const ex = rk.exposure || [];
+    $("r-exp").innerHTML = ex.length ? ex.map(e => `${e.side.toUpperCase()} ${Math.round(e.contracts)} · $${e.max_loss.toFixed(2)}`).join(" ") + ` <span class="dim">/ $${rk.rules.risk_per_market}</span>` : `<span class="dim">flat / $${rk.rules.risk_per_market}</span>`;
+    $("r-rules").textContent = `band ${rk.rules.price_band[0]}–${rk.rules.price_band[1]} · $${rk.rules.order_usd}/order`;
+    const sh = s.blocked_shadow || [];
+    const rows = sh.map(b => `<tr><td class="l">${esc(b.reason)}</td><td>${big(b.signals)}</td><td class="muted">${b.markets}</td>
+      <td>${b.settled ? sign(b.pnl, money(b.pnl)) + ` <span class="dim">(${b.settled} settled)</span>` : '<span class="dim">pending</span>'}</td></tr>`);
+    if (rk.would_pause_count) rows.push(`<tr><td class="l muted">would pause (paper, not blocked): ${esc(rk.pause_reason || "")}</td><td class="muted">${big(rk.would_pause_count)}</td><td></td><td class="dim">traded normally</td></tr>`);
+    $("r-blocks").innerHTML = rows.length ? rows.join("") : '<tr><td colspan="4" class="empty">None</td></tr>';
+  }
+
+  // exits
+  const xe = s.exits || {};
+  if (xe.orders) {
+    const rules = ["hold", "sell 5s", "sell 10s", "sell 30s"], best = Math.max(...rules.map(k => xe[k]));
+    $("x-rows").innerHTML = rules.map(k => `<tr><td class="l">${k === "hold" ? "Hold to settlement" : "Sell after " + k.slice(5)}</td><td>${sign(xe[k], cents(xe[k] / 100))}${xe[k] === best ? ' <span class="accent">best</span>' : ""}</td></tr>`).join("");
+    $("x-note").textContent = `${xe.orders} orders across ${xe.markets} markets. Same trades, sold at the real Kalshi bid, versus held.`;
+  }
+
+  // autopsy
+  const au = s.autopsy || {};
+  if (au._n && au._n.orders) {
+    $("autopsy").className = "";
+    $("autopsy").innerHTML = `<div class="note" style="margin:0 0 8px">${au._n.orders} orders · ${au._n.markets} markets. Small samples are noise.</div>` +
+      Object.entries(au).filter(([k]) => k !== "_n").map(([dim, rows]) => `<table style="margin-bottom:10px"><thead><tr><th class="l">${esc(dim)}</th><th>Orders</th><th>Win</th><th>¢ / contract</th></tr></thead><tbody>` +
+        rows.map(r => `<tr><td class="l">${esc(r.bucket)}</td><td class="muted">${r.orders}</td><td>${Math.round(100 * r.win_rate)}%</td><td>${r.cents_per_contract == null ? "—" : sign(r.cents_per_contract, cents(r.cents_per_contract / 100))}</td></tr>`).join("") + "</tbody></table>").join("");
+  }
+
+  // system
+  const pc = procs.procs || {}, cpu = v => v == null ? "—" : Math.round(v) + "%";
+  const lat = v => v == null ? "—" : v < -50 ? '<span class="accent">clock skew</span>' : Math.max(0, v).toFixed(0) + " ms";
+  if (p.coin) {
+    $("sys-rows").innerHTML = [
+      ["BTC feeds (4 venues)", `${f(p.coin.rate, 0)}/s`, lat(p.coin.lat_p50), cpu(pc["btc feeds"] ?? h.feed_cpu_pct)],
+      ["Kalshi book", `${f(p.book.rate, 0)}/s`, lat(p.book.lat_p50), cpu(pc["kalshi book"] ?? h.kalshi_cpu_pct)],
+      ["Model", `${f(p.model.rate, 0)}/s`, p.model.us_p50 == null ? "—" : Math.round(p.model.us_p50) + " µs", cpu(pc.bot ?? h.cpu_pct)],
+      ["Recorder", "—", "—", cpu(pc.recorder)],
+    ].map(r => `<tr><td class="l">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join("");
+  }
+  $("sys-host").textContent = h.name ? `${h.name}${procs.cores ? " · " + procs.cores + " vCPU" : ""}` : "—";
+  $("sys-load").textContent = `${procs.steal_pct == null ? "—" : procs.steal_pct.toFixed(1) + "%"} · ${lag == null ? "—" : lag.toFixed(1) + " ms"}`;
+  $("sys-rtt").textContent = `${f(cfg.sim_latency_ms, 1)} ms${cfg.latency_measured ? "" : " (estimate)"}`;
+  const ven = s.venues || {}, live = Object.entries(ven).filter(([, v]) => v.age != null && v.age < 3).map(([k]) => k);
+  $("sys-venues").textContent = `${live.length}/${Object.keys(ven).length || 4} live${live.length ? " · " + live.join(", ") : ""}`;
+  const rec = s.recorder || {};
+  $("sys-rec").textContent = rec.per_min ? `${rec.running ? "recording" : "idle"} · ${f(rec.size_mb, 0)} MB · ${rec.settled}/${rec.markets} markets` : "—";
+
+  // log
+  const log = $("log"), atBottom = log.scrollTop + log.clientHeight >= log.scrollHeight - 4;
+  log.innerHTML = s.log.map(l => `<div class="${l.level}"><span class="t">${hms(l.t)}</span>${esc(l.msg)}</div>`).join("");
+  if (atBottom) log.scrollTop = log.scrollHeight;
+}
+
+async function tick() {
+  try {
+    const s = await (await fetch("/api/state", { cache: "no-store" })).json();
+    if (s.now) render(s);
+  } catch (e) {
+    $("banner").style.display = "block"; $("banner").textContent = "Bot unreachable — values below are frozen at the last update.";
+  }
+  setTimeout(tick, 500);
+}
+tick();
+$("lv-stop").addEventListener("click", async () => {
+  if (!confirm("Stop live trading now? No new real orders will be sent. Open positions still settle normally.\n\nTurning it back on is done from the arming script.")) return;
+  $("lv-stop").disabled = true;
+  try { await fetch("/api/live/stop", { method: "POST" }); } catch (e) { $("lv-stop").disabled = false; }
+});
+</script>
+</body>
+</html>

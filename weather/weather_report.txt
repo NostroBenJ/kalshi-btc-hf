@@ -1,0 +1,33 @@
+﻿bracket rules vs settled results: 20,837/20,837 agree
+
+W1 PRIMARY  morning of (previous_day1)   skipped: {'residual history < 30': 217, 'no quote at decision': 16764, 'no settled value': 461}
+  edge >= 0.05                                   n= 1,576   -2.30c +/-0.91  t= -2.52  win 29.5%
+  edge >= 0.10                                   n= 1,197   -3.15c +/-1.05  t= -3.00  win 28.8%
+    - with 1c extra per contract (fee rounding)  n= 1,576   -3.30c +/-0.91  t= -3.61  win 29.5%
+W2 day before (previous_day2)   skipped: {'residual history < 30': 224, 'no quote at decision': 16770, 'no settled value': 461}
+  edge >= 0.05                                   n= 1,591   -3.34c +/-0.83  t= -4.00  win 36.2%
+  edge >= 0.10                                   n= 1,095   -3.11c +/-1.15  t= -2.71  win 35.5%
+    - with 1c extra per contract (fee rounding)  n= 1,591   -4.34c +/-0.83  t= -5.20  win 36.2%
+W6 halves of the primary
+  first half (< 2026-08-12)                      n=   835   -2.86c +/-1.26  t= -2.26  win 29.1%
+  second half (>= 2026-08-12)                    n=   741   -1.67c +/-1.34  t= -1.25  win 30.0%
+W3 CONTROL: forecast from a random other day (must lose)
+  shuffled forecast                              n= 1,775   -1.76c +/-0.60  t= -2.92  win 42.8%
+W4 CONTROL: the settled high itself (must win big)
+  perfect forecast                               n= 1,349  +34.43c +/-0.53  t=+64.79  win 94.3%
+
+W5 Brier at D0 over 2,772 markets: model 0.1299  vs  Kalshi mid 0.0942  (market sharper)
+
+By city, primary (edge >= 0.05)
+  KXHIGHNY                                       n=   211   -0.76c +/-2.63  t= -0.29  win 34.6%
+  KXHIGHCHI                                      n=   275   -3.04c +/-1.68  t= -1.81  win 26.9%
+  KXHIGHMIA                                      n=   222   -0.79c +/-2.59  t= -0.31  win 29.3%
+  KXHIGHAUS                                      n=   194   -6.28c +/-2.63  t= -2.38  win 25.3%
+  KXHIGHDEN                                      n=   214   +0.41c +/-2.52  t= +0.16  win 32.7%
+  KXHIGHLAX                                      n=   239   -2.97c +/-2.25  t= -1.32  win 28.0%
+  KXHIGHPHIL                                     n=   221   -2.76c +/-2.39  t= -1.16  win 30.3%
+By side, primary
+  buy YES (the bracket)                          n=   844   -1.87c +/-0.80  t= -2.35  win  6.5%
+  buy NO (against the bracket)                   n=   732   -2.79c +/-1.25  t= -2.23  win 56.0%
+
+VERDICT: FAIL   (W1 t>=2, W6 halves, W3 loses, W4 wins big) = [False, False, True, True]

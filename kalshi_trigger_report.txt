@@ -1,0 +1,25 @@
+processing 2838 Kalshi markets ...
+markets used 2805
+
+=== whole 15-minute window: realised P&L per contract after fees, clustered by market
+                                              D=-3s LEAK                        D=0s                        D=1s                        D=2s
+  no trigger (edge >= 0)       +0.38c +/-0.37 n=28865.7k   -0.74c +/-0.39 n=27406.7k   -0.85c +/-0.37 n=28348.7k   -0.91c +/-0.35 n=29152.1k
+  moved 1c in last 1s          +5.17c +/-0.40 n= 2692.5k   -0.42c +/-0.67 n=  737.1k   -1.96c +/-0.56 n=  870.8k   -2.31c +/-0.52 n= 1002.1k
+  moved 2c in last 1s          +6.55c +/-0.43 n= 1735.0k   -0.58c +/-0.83 n=  412.4k   -2.09c +/-0.65 n=  484.8k   -2.78c +/-0.59 n=  558.5k
+  moved 5c in last 1s         +11.91c +/-0.69 n=  567.7k   +1.55c +/-1.51 n=  144.0k   -0.84c +/-1.03 n=  157.0k   -3.28c +/-0.94 n=  173.2k
+  moved 1c in last 3s          +4.37c +/-0.37 n= 6710.7k   -0.74c +/-0.55 n= 1769.3k   -1.54c +/-0.48 n= 2058.6k   -1.73c +/-0.45 n= 2303.2k
+  moved 2c in last 3s          +5.21c +/-0.36 n= 5278.5k   -0.74c +/-0.64 n= 1101.6k   -1.46c +/-0.53 n= 1296.8k   -1.90c +/-0.48 n= 1462.0k
+  moved 5c in last 3s          +8.24c +/-0.41 n= 2523.5k   +0.49c +/-0.98 n=  396.8k   -1.35c +/-0.74 n=  451.2k   -2.33c +/-0.70 n=  498.7k
+
+=== LAST MINUTE ONLY (settlement average forming): realised P&L per contract after fees, clustered by market
+                                              D=-3s LEAK                        D=0s                        D=1s                        D=2s
+  no trigger (edge >= 0)       +1.22c +/-0.40 n= 1860.0k   -0.20c +/-0.39 n= 1885.3k   -0.46c +/-0.37 n= 1922.6k   -0.68c +/-0.36 n= 1952.4k
+  moved 1c in last 1s         +11.88c +/-1.55 n=  158.4k   +0.95c +/-1.81 n=   92.1k   -1.58c +/-1.42 n=  101.5k   -2.91c +/-1.44 n=  105.5k
+  moved 2c in last 1s         +13.40c +/-1.75 n=  110.4k   +1.99c +/-2.34 n=   56.7k   -0.74c +/-1.47 n=   64.1k   -3.74c +/-1.47 n=   67.6k
+  moved 5c in last 1s         +17.71c +/-2.13 n=   73.1k   +3.17c +/-3.29 n=   35.7k   -0.46c +/-1.81 n=   41.2k   -3.33c +/-1.88 n=   43.1k
+  moved 1c in last 3s          +9.33c +/-1.22 n=  416.5k   +0.59c +/-1.30 n=  237.7k   -1.23c +/-1.11 n=  253.2k   -2.41c +/-1.10 n=  267.1k
+  moved 2c in last 3s         +11.11c +/-1.44 n=  316.7k   +1.34c +/-1.52 n=  171.1k   -0.65c +/-1.26 n=  180.5k   -2.08c +/-1.23 n=  185.9k
+  moved 5c in last 3s         +15.12c +/-1.77 n=  201.5k   +2.30c +/-2.11 n=   92.5k   -0.24c +/-1.49 n=   98.1k   -2.57c +/-1.47 n=  102.2k
+
+Read it as: a real speed edge shows up as trigger rows beating the no-trigger row at D=0,
+growing with delta, and fading as D grows. The LEAK column must be the best, or the test is blind.

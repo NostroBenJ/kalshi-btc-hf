@@ -1,0 +1,54 @@
+[1] no lookahead: corrupting every price after t leaves fair(t) unchanged
+  PASS  t = open+1  : fair(t) identical, later values do move            
+  PASS  t = open+90 : fair(t) identical, later values do move            
+  PASS  t = open+200: fair(t) identical, later values do move            
+  PASS  t = open+299: fair(t) identical                                  
+[2] clustered SE recovers the true SE when fills share a market outcome
+  PASS  clustered SE within 10% of the Monte Carlo SE                    0.0354 vs true 0.0349
+  PASS  naive SE is far too tight (expect ~sqrt(30) = 5.5x)              5.3x
+[3] P&L sign conventions
+  PASS  buy at 0.40, wins: 1 - 0.40 - fee                                
+  PASS  sell at 0.40, wins: 0.40 - 1 - fee                               
+
+ALL PASS
+
+processing 8639 markets ...
+markets used 8599   skipped {'no binance': 40}
+taker fee rate by market: {0.07: 8599}
+
+[A] settlement reading vs official outcome (Binance as the Chainlink proxy)
+  end avg60 vs open avg60              agrees  96.9%   when |margin| > $15: 6382/6383 (99.98%)
+  end avg60 vs open print              agrees  90.2%   when |margin| > $15: 6123/6332 (96.70%)
+  avg300 vs open print (description)   agrees  83.4%   when |margin| > $15: 4915/5343 (91.99%)
+  end print vs open print              agrees  87.4%   when |margin| > $15: 6019/6393 (94.15%)
+  The right rule should only miss on near-ties, where Binance and Chainlink differ by a few dollars.
+
+[A2] is the model calibrated? P(Up) buckets vs how often Up actually won
+   model P(Up)  samples   Up won  +/- 2SE
+    0.0-0.1    12030    0.028    0.003
+    0.1-0.2     2471    0.144    0.014
+    0.2-0.3     2970    0.233    0.016
+    0.3-0.4     3697    0.325    0.015
+    0.4-0.5     4907    0.429    0.014
+    0.5-0.6     4795    0.550    0.014
+    0.6-0.7     3571    0.669    0.016
+    0.7-0.8     2921    0.768    0.016
+    0.8-0.9     2395    0.866    0.014
+    0.9-1.0    11837    0.978    0.003
+  Brier on 50031 samples with a prior trade: model 0.1198   last Polymarket trade 0.1157   (lower wins)
+
+[B] copy every taker fill with model edge >= theta: realised P&L per share, clustered by market
+                                       D=0s (LEAK)                          D=3s                          D=5s                         D=10s
+          all takers   -0.90c +/-0.04 n=13,855,343   -0.90c +/-0.04 n=13,750,737   -0.89c +/-0.04 n=13,631,415   -0.88c +/-0.04 n=13,221,034
+          edge >= 0c    +1.42c +/-0.22 n=5,512,900    -0.48c +/-0.25 n=4,716,688    -0.91c +/-0.21 n=4,681,724    -1.05c +/-0.17 n=4,746,627
+          edge >= 2c    +2.36c +/-0.31 n=3,771,409    -0.48c +/-0.34 n=3,147,362    -1.10c +/-0.28 n=3,367,892    -1.22c +/-0.20 n=3,732,999
+          edge >= 5c    +3.72c +/-0.41 n=2,200,104    -0.41c +/-0.44 n=1,787,786    -1.27c +/-0.34 n=2,136,288    -1.37c +/-0.24 n=2,674,924
+         edge >= 10c      +6.21c +/-0.59 n=960,175      -0.26c +/-0.65 n=766,982    -1.43c +/-0.46 n=1,057,622    -1.55c +/-0.30 n=1,549,286
+  Cents per share after fees; +/- is one market-clustered SE; n is fills.
+
+[C] where the D=5s, edge>=2c fills sit in the window
+  seconds   1-60    -0.87c +/- 0.50   shares   16,047,363   markets 8237
+  seconds  60-180   -1.15c +/- 0.37   shares   37,365,841   markets 8311
+  seconds 180-240   -1.23c +/- 0.37   shares   22,152,636   markets 7148
+  seconds 240-285   -0.90c +/- 0.44   shares   15,153,727   markets 4515
+  seconds 285-300   -2.06c +/- 0.93   shares    2,128,896   markets 1017
